@@ -17,6 +17,7 @@
 package com.android.server.autofill;
 
 import android.annotation.Nullable;
+import android.metrics.LogMaker;
 import android.os.Bundle;
 import android.util.ArraySet;
 import android.view.autofill.AutofillId;
@@ -24,6 +25,8 @@ import android.view.autofill.AutofillId;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
+
+import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 
 public final class Helper {
 
@@ -81,5 +84,14 @@ public final class Helper {
             array[i] = set.valueAt(i);
         }
         return array;
+    }
+
+    public static LogMaker newLogMaker(int category, String packageName,
+            String servicePackageName) {
+        final LogMaker log = new LogMaker(category).setPackageName(packageName);
+        if (servicePackageName != null) {
+            log.addTaggedData(MetricsEvent.FIELD_AUTOFILL_SERVICE, servicePackageName);
+        }
+        return log;
     }
 }
