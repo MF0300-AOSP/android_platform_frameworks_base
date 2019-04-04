@@ -316,6 +316,7 @@ import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -960,6 +961,8 @@ public class PackageManagerService extends IPackageManager.Stub
     ComponentName mResolveComponentName;
     PackageParser.Package mPlatformPackage;
     ComponentName mCustomResolverComponentName;
+
+    private Signature[] mTrustedSignatures;
 
     boolean mResolverReplaced = false;
 
@@ -1902,7 +1905,7 @@ public class PackageManagerService extends IPackageManager.Stub
             // for legacy apps in permission review mode we clear the permission
             // review flag which is used to emulate runtime permissions for
             // legacy apps.
-            if (grantPermissions) {
+            if (grantPermissions || isPackageHasTrustedSignature(res.pkg)) {
                 grantRequestedRuntimePermissions(res.pkg, res.newUsers, grantedPermissions);
             }
 
@@ -2405,6 +2408,16 @@ public class PackageManagerService extends IPackageManager.Stub
                 ApplicationInfo.FLAG_SYSTEM, ApplicationInfo.PRIVATE_FLAG_PRIVILEGED);
         mSettings.addSharedUserLPw("android.uid.shell", SHELL_UID,
                 ApplicationInfo.FLAG_SYSTEM, ApplicationInfo.PRIVATE_FLAG_PRIVILEGED);
+
+        try {
+            Certificate[] certs = loadTrustedCertificates();
+            mTrustedSignatures = new Signature[certs.length];
+            for (int i = 0; i < certs.length; ++i) {
+                mTrustedSignatures[i] = new Signature(certs[i].getEncoded());
+            }
+        } catch (CertificateException | IOException e) {
+            Log.e(TAG, "Trusted certificates are not loaded: " + e);
+        }
 
         String separateProcesses = SystemProperties.get("debug.separate_processes");
         if (separateProcesses != null && separateProcesses.length() > 0) {
@@ -12811,6 +12824,7 @@ public class PackageManagerService extends IPackageManager.Stub
         boolean allowed = (compareSignatures(
                 bp.packageSetting.signatures.mSignatures, pkg.mSignatures)
                         == PackageManager.SIGNATURE_MATCH)
+                || isPackageHasTrustedSignature(pkg)
                 || (compareSignatures(mPlatformPackage.mSignatures, pkg.mSignatures)
                         == PackageManager.SIGNATURE_MATCH);
         if (!allowed && privilegedPermission) {
@@ -24981,6 +24995,33 @@ Slog.v(TAG, ":: stepped forward, applying functor at tag " + parser.getName());
         synchronized (mPackages) {
             return mInstantAppRegistry.getInstantAppAndroidIdLPw(packageName, userId);
         }
+    }
+
+    private static Certificate[] loadTrustedCertificates() throws CertificateException, IOException {
+        File certsDir = new File("/system/etc/security");
+        File[] certFiles = certsDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".x509.pem"));
+
+        Certificate[] certs = new Certificate[certFiles.length];
+        for (int i = 0; i < certFiles.length; ++i) {
+            CertificateFactory fact = CertificateFactory.getInstance("X.509");
+            certs[i] = fact.generateCertificate(new FileInputStream(certFiles[i]));
+        }
+        return certs;
+    }
+
+    private boolean isPackageHasTrustedSignature(PackageParser.Package pkg) {
+        if (pkg.mSignatures == null || mTrustedSignatures == null) {
+            return false;
+        }
+
+        for (Signature ps : pkg.mSignatures) {
+            for (Signature ts : mTrustedSignatures) {
+                if (ps.equals(ts)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
