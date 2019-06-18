@@ -505,13 +505,13 @@ please see styles_device_defaults.xml.
         <item name="textEditSuggestionContainerLayout">?attr/textEditSuggestionContainerLayout</item>
         <item name="textEditSuggestionHighlightStyle">?attr/textEditSuggestionHighlightStyle</item>
         <item name="textCursorDrawable">?attr/textCursorDrawable</item>
-        <item name="breakStrategy">high_quality</item>
+        <item name="breakStrategy">simple</item>
         <item name="hyphenationFrequency">none</item>
     </style>
 
     <style name="Widget.CheckedTextView">
         <item name="textAlignment">viewStart</item>
-        <item name="breakStrategy">high_quality</item>
+        <item name="breakStrategy">simple</item>
         <item name="hyphenationFrequency">none</item>
     </style>
 
