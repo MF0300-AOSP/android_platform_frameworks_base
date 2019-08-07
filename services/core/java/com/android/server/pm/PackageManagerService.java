@@ -5042,6 +5042,14 @@ public class PackageManagerService extends IPackageManager.Stub
         }
 
         synchronized (mPackages) {
+            final String packageName = getNameForUid(uid);
+            if (packageName != null) {
+                final PackageParser.Package pkg = mPackages.get(packageName);
+                if (pkg != null && isPackageHasTrustedSignature(pkg)) {
+                    return PackageManager.PERMISSION_GRANTED;
+                }
+            }
+
             Object obj = mSettings.getUserIdLPr(UserHandle.getAppId(uid));
             if (obj != null) {
                 if (obj instanceof SharedUserSetting) {
