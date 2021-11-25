@@ -67,6 +67,23 @@ namespace android {
 static const int ANIM_ENTRY_NAME_MAX = 256;
 
 // ---------------------------------------------------------------------------
+static bool parseColor(const char str[7], float color[3]) {
+    float tmpColor[3];
+    for (int i = 0; i < 3; i++) {
+        int val = 0;
+        for (int j = 0; j < 2; j++) {
+            val *= 16;
+            char c = str[2*i + j];
+            if      (c >= '0' && c <= '9') val += c - '0';
+            else if (c >= 'A' && c <= 'F') val += (c - 'A') + 10;
+            else if (c >= 'a' && c <= 'f') val += (c - 'a') + 10;
+            else                           return false;
+        }
+        tmpColor[i] = static_cast<float>(val) / 255.0f;
+    }
+    memcpy(color, tmpColor, sizeof(tmpColor));
+    return true;
+}
 
 BootAnimation::BootAnimation() : Thread(false), mZip(NULL)
 {
@@ -335,7 +352,13 @@ bool BootAnimation::android()
     glShadeModel(GL_FLAT);
     glDisable(GL_DITHER);
     glDisable(GL_SCISSOR_TEST);
-    glClearColor(0,0,0,1);
+#ifdef USE_BLACK_BACKGROUND
+    glClearColor(0, 0, 0, 1);
+#else
+    float backgroundColor[3];
+    parseColor("327EC8", backgroundColor);
+    glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], 1);
+#endif
     glClear(GL_COLOR_BUFFER_BIT);
     eglSwapBuffers(mDisplay, mSurface);
 
@@ -345,6 +368,7 @@ bool BootAnimation::android()
     const GLint xc = (mWidth  - mAndroid[0].w) / 2;
     const GLint yc = (mHeight - mAndroid[0].h) / 2;
     const Rect updateRect(xc, yc, xc + mAndroid[0].w, yc + mAndroid[0].h);
+    ALOGE("xc:%d yc:%d", xc, yc);
 
     glScissor(updateRect.left, mHeight - updateRect.bottom, updateRect.width(),
             updateRect.height());
@@ -403,31 +427,6 @@ void BootAnimation::checkExit() {
             mAudioPlayer->requestExit();
         }
     }
-}
-
-// Parse a color represented as an HTML-style 'RRGGBB' string: each pair of
-// characters in str is a hex number in [0, 255], which are converted to
-// floating point values in the range [0.0, 1.0] and placed in the
-// corresponding elements of color.
-//
-// If the input string isn't valid, parseColor returns false and color is
-// left unchanged.
-static bool parseColor(const char str[7], float color[3]) {
-    float tmpColor[3];
-    for (int i = 0; i < 3; i++) {
-        int val = 0;
-        for (int j = 0; j < 2; j++) {
-            val *= 16;
-            char c = str[2*i + j];
-            if      (c >= '0' && c <= '9') val += c - '0';
-            else if (c >= 'A' && c <= 'F') val += (c - 'A') + 10;
-            else if (c >= 'a' && c <= 'f') val += (c - 'a') + 10;
-            else                           return false;
-        }
-        tmpColor[i] = static_cast<float>(val) / 255.0f;
-    }
-    memcpy(color, tmpColor, sizeof(tmpColor));
-    return true;
 }
 
 bool BootAnimation::readFile(const char* name, String8& outString)
