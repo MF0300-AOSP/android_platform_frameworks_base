@@ -5977,11 +5977,6 @@ public class PackageManagerService extends IPackageManager.Stub {
                 match = compareSignaturesRecover(pkgSetting.signatures, pkg)
                         == PackageManager.SIGNATURE_MATCH;
             }
-            if (!match) {
-                throw new PackageManagerException(INSTALL_FAILED_UPDATE_INCOMPATIBLE, "Package "
-                        + pkg.packageName + " signatures do not match the "
-                        + "previously installed version; ignoring!");
-            }
         }
 
         // Check for shared user signatures
@@ -11858,14 +11853,6 @@ public class PackageManagerService extends IPackageManager.Stub {
                     res.setError(INSTALL_FAILED_UPDATE_INCOMPATIBLE,
                             "New package not signed by keys specified by upgrade-keysets: "
                             + pkgName);
-                    return;
-                }
-            } else {
-                // default to original signature matching
-                if (compareSignatures(oldPackage.mSignatures, pkg.mSignatures)
-                    != PackageManager.SIGNATURE_MATCH) {
-                    res.setError(INSTALL_FAILED_UPDATE_INCOMPATIBLE,
-                            "New package has a different signature: " + pkgName);
                     return;
                 }
             }
