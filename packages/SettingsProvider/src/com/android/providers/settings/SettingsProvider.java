@@ -1855,7 +1855,7 @@ public class SettingsProvider extends ContentProvider {
         }
 
         private final class UpgradeController {
-            private static final int SETTINGS_VERSION = 123;
+            private static final int SETTINGS_VERSION = 124;
 
             private final int mUserId;
 
@@ -2015,6 +2015,25 @@ public class SettingsProvider extends ContentProvider {
                     globalSettings.insertSettingLocked(Settings.Global.BLUETOOTH_DISABLED_PROFILES,
                             defaultDisabledProfiles, SettingsState.SYSTEM_PACKAGE_NAME);
                     currentVersion = 123;
+                }
+
+                if (currentVersion == 123) {
+                    // Version 124: allow OEMs to set a default value for whether IME should be
+                    // shown when a physical keyboard is connected.
+                    final SettingsState secureSettings = getSecureSettingsLocked(userId);
+                    String defaultComponent = (getContext().getResources().getString(
+                            R.bool.def_show_ime_with_hard_keyboard));
+                    Setting currentSetting = secureSettings.getSettingLocked(
+                            Settings.Secure.SHOW_IME_WITH_HARD_KEYBOARD);
+                    if (defaultComponent != null && !defaultComponent.isEmpty() &&
+                        currentSetting == null) {
+                        secureSettings.insertSettingLocked(
+                                Settings.Secure.SHOW_IME_WITH_HARD_KEYBOARD,
+                                getContext().getResources().getBoolean(
+                                    R.bool.def_show_ime_with_hard_keyboard) ? "1" : "0",
+                                SettingsState.SYSTEM_PACKAGE_NAME);
+                    }
+                    currentVersion = 124;
                 }
 
                 // vXXX: Add new settings above this point.
